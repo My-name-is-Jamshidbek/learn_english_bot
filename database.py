@@ -1,3 +1,6 @@
+import random
+from gtts import gTTS
+
 from config import DATABASE_NAME
 import sqlite3
 
@@ -362,7 +365,7 @@ def database_add_rule(book, topic, rule):
     conn.close()
 
 
-def database_get_tests_by_topic(book, topic):
+def database_get_tests_id_by_topic(book, topic):
     """
     Function to retrieve a test from the "tests" table in the "database.db" database by topic
     :param book: str : book name
@@ -374,7 +377,34 @@ def database_get_tests_by_topic(book, topic):
     cursor = conn.cursor()
 
     # Select data from the "tests" table by topic
-    cursor.execute("SELECT * FROM tests WHERE (topic = ? and book = ?)", (topic, book))
+    cursor.execute("SELECT id FROM tests WHERE (topic = ? and book = ?)", (topic, book))
+
+    # Fetch the data
+    test = cursor.fetchall()
+
+    # Close the connection
+    conn.close()
+
+    rt = ""
+
+    for i in test:rt+=str(i[0])+"_"
+
+    return rt[:-1]
+
+
+def database_get_test_question_by_id(id):
+    """
+    Function to retrieve a test from the "tests" table in the "database.db" database by topic
+    :param book: str : book name
+    :param topic: str : topic of the test
+    :return: tuple : tuple representing a row of data
+    """
+    # Connect to the database
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    # Select data from the "tests" table by topic
+    cursor.execute("SELECT test_question FROM tests WHERE (id= ?)", (id, ))
 
     # Fetch the data
     test = cursor.fetchone()
@@ -382,7 +412,76 @@ def database_get_tests_by_topic(book, topic):
     # Close the connection
     conn.close()
 
-    return test
+    return test[0]
+
+def database_get_test_answers_by_id(id):
+    """
+    Function to retrieve a test from the "tests" table in the "database.db" database by topic
+    :param book: str : book name
+    :param topic: str : topic of the test
+    :return: tuple : tuple representing a row of data
+    """
+    # Connect to the database
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    # Select data from the "tests" table by topic
+    cursor.execute("SELECT answer1, answer2, answer3 FROM tests WHERE (id = ?)", (id, ))
+
+    # Fetch the data
+    test = cursor.fetchall()
+
+    cursor.execute("SELECT correct_answer FROM tests WHERE (id = ?)", (id,))
+
+    correct_answer = cursor.fetchone()
+
+    cursor.execute(f"SELECT {correct_answer[0]} FROM tests WHERE (id = {id})")
+
+    correct_answer = cursor.fetchone()
+
+    cursor.execute("SELECT correct_answer FROM tests WHERE (id = ?)", (id,))
+
+    test_question = cursor.fetchone()
+
+    # Close the connection
+    conn.close()
+
+    correct_answer=correct_answer[0]
+
+    test = list(test[0])
+    random.shuffle(test)
+    n = 0
+    for i in ["A","B","C"]:
+        if test[n] == correct_answer:
+            correct_answer=i
+            correct_answer_text = test[n]
+            break
+        n+=1
+    rt = ""
+    n = 0
+    for i in ["A ",".\nB ",".\nC "]:rt+=i+test[n];n+=1
+    rt+="."
+
+    r = {
+        "correct_answer":correct_answer,
+        "answers":rt,
+        "test_question":test_question[0],
+        "question_full_text":test_question[0]+"\nAnswers:\n"+rt,
+        "question_full_text_admin":test_question[0]+"\nAnswers:\n"+rt+'\nCorrect answer: '+correct_answer,
+        "correct_answer_text":correct_answer_text,
+    }
+    return r
+def database_delete_test(test_id):
+    # Connect to the database
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    # Delete the test with the specified ID
+    cursor.execute("DELETE FROM tests WHERE id=?", (test_id,))
+
+    # Save the changes and close the connection
+    conn.commit()
+    conn.close()
 
 
 def database_get_words_by_topic(book, topic):
@@ -403,7 +502,7 @@ def database_get_words_by_topic(book, topic):
 
     # Close the connection
     conn.close()
-
+    words = words[0][0]
     return words
 
 
@@ -460,7 +559,7 @@ def database_get_topics(book):
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
     # Select data from the "rules" table by topic
-    cursor.execute("SELECT topic FROM rules WHERE book = ?", book)
+    cursor.execute("SELECT topic FROM rules WHERE book = ?", (book, ))
 
     # Fetch the data
     topics = cursor.fetchall()
@@ -470,6 +569,90 @@ def database_get_topics(book):
 
     return topics
 
+
+def database_add_book(name, about, teacher):
+    # Connect to the database
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    # Insert data into the "writing" table
+    cursor.execute("INSERT INTO books (name, about, teacher) VALUES (?, ?, ?)", (name, about, teacher))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
+
+def database_delete_book_data(book_name):
+    """
+    Function to delete all data related to a book from the database
+    :param book_name: str : name of the book
+    """
+    # Connect to the database
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    # Delete data from the "books" table
+    cursor.execute("DELETE FROM books WHERE name=?", (book_name,))
+
+    # Delete data from the "tests" table
+    cursor.execute("DELETE FROM tests WHERE book=?", (book_name,))
+
+    # Delete data from the "words" table
+    cursor.execute("DELETE FROM words WHERE book=?", (book_name,))
+
+    # Delete data from the "exercises" table
+    cursor.execute("DELETE FROM exercises WHERE book=?", (book_name,))
+
+    # Delete data from the "rules" table
+    cursor.execute("DELETE FROM rules WHERE book=?", (book_name,))
+
+    # Delete data from the "lessons" table
+    cursor.execute("DELETE FROM lessons WHERE book=?", (book_name,))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
+
+def database_delete_by_topic_and_book(topic, book):
+    """
+    Function to delete all rows from the "tests", "writing", "speaking", "rules" and "lessons" tables where topic = topic and book = book
+    :param topic: str : topic name
+    :param book: str : book name
+    """
+    # Connect to the database
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    # Delete data from the "tests" table where topic = topic and book = book
+    cursor.execute("DELETE FROM tests WHERE topic = ? and book = ?", (topic, book))
+    # Delete data from the "writing" table where topic = topic and book = book
+    cursor.execute("DELETE FROM words WHERE topic = ? and book = ?", (topic, book))
+    # Delete data from the "speaking" table where topic = topic and book = book
+    cursor.execute("DELETE FROM exercises WHERE topic = ? and book = ?", (topic, book))
+    # Delete data from the "rules" table where topic = topic and book = book
+    cursor.execute("DELETE FROM rules WHERE topic = ? and book = ?", (topic, book))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
+
+def database_add_words_audio(words):
+    """
+    :param words:
+    :return:
+    """
+    for text in words.split(','):
+        stext = ''
+        for i in text:stext+=i+" "
+        # ovozli habar yaratish
+        tts = gTTS(text)
+        stts = gTTS(stext)
+        # ovozli habarni saqlash
+        tts.save("data/audio/writing/"+text+".mp3")
+        stts.save("data/audio/spelling/"+text+".mp3")
 # create_database()
 # print(database_get_information_())
 # print(database_get_books())

@@ -8,6 +8,18 @@ class state_Admin(StatesGroup):
 
     book_menu = State()
 
+    add_book = State()
+    add_book_name = State()
+    add_book_about = State()
+    add_book_teacher = State()
+
+    add_lesson = State()
+    add_lesson_vocabulary = State()
+    add_lesson_exercise = State()
+    add_lesson_rules = State()
+
+    delete_book = State()
+
     book_malumoti = State()
     book_malumoti_ozgartirish = State()
 
@@ -58,3 +70,39 @@ class state_Admin(StatesGroup):
     about = State()
     about_menu = State()
     about_update = State()
+
+    training_main_menu = State()
+    training_main_menu_select = State()
+
+    training_tests = State()
+    current_test_id = State()
+    current_test_answer = State()
+    current_test_answer_text = State()
+    training_test_close = State()
+    test_number = State()
+    current_test_question = State()
+
+
+
+
+
+class state_user(StatesGroup):
+    main_menu = State()
+    about_menu = State()
+    books_menu = State()
+    book_menu = State()
+    lessons_menu = State()
+    training_menu = State()
+    lesson_menu = State()
+    lesson_tests = State()
+    training_test_close = State()
+    training_tests = State()
+    answers = State()
+
+    lesson_words = State()
+    training_words = State()
+    current_word = State()
+    training_word_close = State()
+    word_number = State()
+    training_word = State()
+
