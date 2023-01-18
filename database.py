@@ -7,9 +7,26 @@ def create_database():
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
 
-    # Insert data into the "books" table cursor.execute("INSERT INTO books (name, about, teacher) VALUES ('book
-    # name','about the book','about the teacher')")
-    cursor.execute('''CREATE TABLE information (id INTEGER PRIMARY KEY,developer TEXT,bot TEXT,admin TEXT)''')
+    # create the "information" table
+    cursor.execute('''
+        CREATE TABLE information (
+            id INTEGER PRIMARY KEY,
+            developer TEXT,
+            bot TEXT,
+            admin TEXT
+        )
+    ''')
+
+    # create the "books" table
+    cursor.execute('''
+        CREATE TABLE books (
+            id INTEGER PRIMARY KEY,
+            name TEXT, 
+            about TEXT, 
+            teacher TEXT
+        )
+    ''')
+
     # Create the "tests" table
     cursor.execute('''
         CREATE TABLE tests (
@@ -43,6 +60,8 @@ def create_database():
             exercise TEXT
         )
     ''')
+
+    # create the "rules" table
     cursor.execute('''
             CREATE TABLE rules (
                 id INTEGER PRIMARY KEY,
@@ -52,6 +71,7 @@ def create_database():
             )
         ''')
 
+    # create the "lessons" table
     cursor.execute('''
         CREATE TABLE lessons (
             id INTEGER PRIMARY KEY,
@@ -61,8 +81,14 @@ def create_database():
         )
     ''')
 
-    # cursor.execute("INSERT INTO information (developer, bot, admin) VALUES ('developer name','about the bot',
-    # 'about the admin')") Commit the changes and close the connection
+    # Insert data into the "information" table
+    cursor.execute("INSERT INTO information (developer, bot, admin) VALUES ('developer name','about the bot',"
+                   "'about the admin')")
+
+    # Insert data into the "information" table
+    cursor.execute("INSERT INTO books (name, about, teacher) VALUES ('book1','about1','about1')")
+    cursor.execute("INSERT INTO books (name, about, teacher) VALUES ('book2','about2','about2')")
+
     conn.commit()
     conn.close()
 
@@ -116,9 +142,8 @@ def database_get_books_about_by_book_name(book_name):
     # Connect to the database
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
-
     # Select data from the "books" table where teacher=teacher
-    cursor.execute("SELECT about FROM books WHERE name=?", book_name)
+    cursor.execute("SELECT about FROM books WHERE name=?", (book_name, ))
 
     # Fetch all the data
     books = cursor.fetchall()
@@ -126,7 +151,7 @@ def database_get_books_about_by_book_name(book_name):
     # Close the connection
     conn.close()
 
-    return books
+    return books[0][0]
 
 
 def database_get_books_teacher_by_book_name(book_name):
@@ -140,7 +165,7 @@ def database_get_books_teacher_by_book_name(book_name):
     cursor = conn.cursor()
 
     # Select data from the "books" table where teacher=teacher
-    cursor.execute("SELECT teacher FROM books WHERE name=?", book_name)
+    cursor.execute("SELECT teacher FROM books WHERE name=?", (book_name, ))
 
     # Fetch all the data
     books = cursor.fetchall()
@@ -148,7 +173,7 @@ def database_get_books_teacher_by_book_name(book_name):
     # Close the connection
     conn.close()
 
-    return books
+    return books[0][0]
 
 
 def database_get_books_name():
@@ -447,3 +472,5 @@ def database_get_topics(book):
 
 # create_database()
 # print(database_get_information_())
+# print(database_get_books())
+# print([name[1] for name in database_get_books()])

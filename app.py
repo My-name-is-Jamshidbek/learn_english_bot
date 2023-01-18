@@ -26,7 +26,8 @@ async def cmd_admin_main(m: types.Message) -> None:
                        reply_markup=keyboard_admin_menu_information())
         await state_Admin.about_menu.set()
     elif m.text == "Books":
-        await m.answer("You have selected the books menu. Select the desired menu:", reply_markup=keyboard_books())
+        await m.answer("You have selected the books menu. Select the desired menu:",
+                       reply_markup=keyboard_books())
         await state_Admin.book.set()
     else:
         await m.answer("Bunday menyu mavjud emas!")
@@ -82,9 +83,10 @@ async def cmd_admin_about_update(m: types.Message, state: FSMContext):
         await state_Admin.about.set()
 
 
-@dp.message_handler(state=state_Admin.book.set(), content_types=types.ContentType.TEXT)
+# books
+@dp.message_handler(state=state_Admin.book, content_types=types.ContentType.TEXT)
 async def cmd_admin_books_menu(m: types.Message, state: FSMContext):
-    if m.text in database_get_books():
+    if m.text in [name[1] for name in database_get_books()]:
         await m.answer(f"You have selected the book {m.text}. Please select the desired menu:",
                        reply_markup=keyboard_books_create_menu())
         await state.update_data(book=m.text)
@@ -133,7 +135,7 @@ async def cmd_admin_books_lessons_menu_selected(m: types.Message, state: FSMCont
 
 
 @dp.message_handler(state=state_Admin.lessons_main, content_types=types.ContentType.TEXT)
-async def cmd_admin_books_lessons_main_menu_selected(m: types.Message, state: FSMContext):
+async def cmd_admin_books_lessons_main_menu_selected():
     pass
 
 
@@ -151,7 +153,7 @@ async def cmd_admin_books_lesson_menu_selected(m: types.Message, state: FSMConte
         pass
 
 
-@dp.message_handler(state=state_Admin.book_malumoti.set(), content_types=types.ContentType.TEXT)
+@dp.message_handler(state=state_Admin.book_malumoti, content_types=types.ContentType.TEXT)
 async def cmd_admin_books_about(m: types.Message, state: FSMContext):
     if m.text == "Close":
         await m.answer("Closed.", reply_markup=keyboard_books_create_menu())
@@ -159,7 +161,7 @@ async def cmd_admin_books_about(m: types.Message, state: FSMContext):
     elif m.text == "Update":
         data = await state.get_data()
         book_name = data.get("book")
-        await m.answer(f"You want to update the information of the book {book_name}. Please enter the new information:")
+        await m.answer(f"You want to update the information of the book {book_name}. Please enter the new information:", reply_markup=keyboard_close())
         await state_Admin.book_malumoti_ozgartirish.set()
 
 
@@ -178,7 +180,7 @@ async def cmd_admin_books_about_update(m: types.Message, state: FSMContext):
         await state_Admin.book_malumoti.set()
 
 
-@dp.message_handler(state=state_Admin.teacher_malumoti.set(), content_types=types.ContentType.TEXT)
+@dp.message_handler(state=state_Admin.teacher_malumoti, content_types=types.ContentType.TEXT)
 async def cmd_admin_books_about(m: types.Message, state: FSMContext):
     if m.text == "Close":
         await m.answer("Closed.", reply_markup=keyboard_books_create_menu())
@@ -187,7 +189,7 @@ async def cmd_admin_books_about(m: types.Message, state: FSMContext):
         data = await state.get_data()
         book_name = data.get("book")
         await m.answer(
-            f"You want to update the teacher information of the book {book_name}. Please enter the new information:")
+            f"You want to update the teacher information of the book {book_name}. Please enter the new information:", reply_markup=keyboard_close())
         await state_Admin.teacher_malumoti_ozgartirish.set()
 
 
