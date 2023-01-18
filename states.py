@@ -8,6 +8,18 @@ class state_Admin(StatesGroup):
 
     book_menu = State()
 
+    add_book = State()
+    add_book_name = State()
+    add_book_about = State()
+    add_book_teacher = State()
+
+    add_lesson = State()
+    add_lesson_vocabulary = State()
+    add_lesson_exercise = State()
+    add_lesson_rules = State()
+
+    delete_book = State()
+
     book_malumoti = State()
     book_malumoti_ozgartirish = State()
 

@@ -460,7 +460,7 @@ def database_get_topics(book):
     conn = sqlite3.connect(DATABASE_NAME)
     cursor = conn.cursor()
     # Select data from the "rules" table by topic
-    cursor.execute("SELECT topic FROM rules WHERE book = ?", book)
+    cursor.execute("SELECT topic FROM rules WHERE book = ?", (book, ))
 
     # Fetch the data
     topics = cursor.fetchall()
@@ -469,6 +469,75 @@ def database_get_topics(book):
     conn.close()
 
     return topics
+
+
+def database_add_book(name, about, teacher):
+    # Connect to the database
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    # Insert data into the "writing" table
+    cursor.execute("INSERT INTO books (name, about, teacher) VALUES (?, ?, ?)", (name, about, teacher))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
+
+def database_delete_book_data(book_name):
+    """
+    Function to delete all data related to a book from the database
+    :param book_name: str : name of the book
+    """
+    # Connect to the database
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    # Delete data from the "books" table
+    cursor.execute("DELETE FROM books WHERE name=?", (book_name,))
+
+    # Delete data from the "tests" table
+    cursor.execute("DELETE FROM tests WHERE book=?", (book_name,))
+
+    # Delete data from the "words" table
+    cursor.execute("DELETE FROM words WHERE book=?", (book_name,))
+
+    # Delete data from the "exercises" table
+    cursor.execute("DELETE FROM exercises WHERE book=?", (book_name,))
+
+    # Delete data from the "rules" table
+    cursor.execute("DELETE FROM rules WHERE book=?", (book_name,))
+
+    # Delete data from the "lessons" table
+    cursor.execute("DELETE FROM lessons WHERE book=?", (book_name,))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
+
+
+def database_delete_by_topic_and_book(topic, book):
+    """
+    Function to delete all rows from the "tests", "writing", "speaking", "rules" and "lessons" tables where topic = topic and book = book
+    :param topic: str : topic name
+    :param book: str : book name
+    """
+    # Connect to the database
+    conn = sqlite3.connect(DATABASE_NAME)
+    cursor = conn.cursor()
+
+    # Delete data from the "tests" table where topic = topic and book = book
+    cursor.execute("DELETE FROM tests WHERE topic = ? and book = ?", (topic, book))
+    # Delete data from the "writing" table where topic = topic and book = book
+    cursor.execute("DELETE FROM words WHERE topic = ? and book = ?", (topic, book))
+    # Delete data from the "speaking" table where topic = topic and book = book
+    cursor.execute("DELETE FROM exercises WHERE topic = ? and book = ?", (topic, book))
+    # Delete data from the "rules" table where topic = topic and book = book
+    cursor.execute("DELETE FROM rules WHERE topic = ? and book = ?", (topic, book))
+
+    # Commit the changes and close the connection
+    conn.commit()
+    conn.close()
 
 # create_database()
 # print(database_get_information_())
