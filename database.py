@@ -1,8 +1,12 @@
 import random
 from gtts import gTTS
+import soundfile as sf
 
 from config import DATABASE_NAME
 import sqlite3
+
+
+import speech_recognition as sr
 
 
 def create_database():
@@ -12,7 +16,7 @@ def create_database():
 
     # create the "information" table
     cursor.execute('''
-        CREATE TABLE information (
+        CREATE TABLE IF NOT EXISTS information (
             id INTEGER PRIMARY KEY,
             developer TEXT,
             bot TEXT,
@@ -22,17 +26,29 @@ def create_database():
 
     # create the "books" table
     cursor.execute('''
-        CREATE TABLE books (
+        CREATE TABLE IF NOT EXISTS books (
             id INTEGER PRIMARY KEY,
             name TEXT, 
             about TEXT, 
             teacher TEXT
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS employees (
+            id INTEGER PRIMARY KEY,
+            name TEXT
+        )
+    ''')
+
+    cursor.execute('''
+            CREATE TABLE IF NOT EXISTS employees_state (
+                id INTEGER PRIMARY KEY
+            )
+        ''')
 
     # Create the "tests" table
     cursor.execute('''
-        CREATE TABLE tests (
+        CREATE TABLE IF NOT EXISTS tests (
             id INTEGER PRIMARY KEY,
             book TEXT,
             topic TEXT,
@@ -46,7 +62,7 @@ def create_database():
 
     # Create the "writing" table
     cursor.execute('''
-        CREATE TABLE words (
+        CREATE TABLE IF NOT EXISTS words (
             id INTEGER PRIMARY KEY,
             book TEXT,
             topic TEXT,
@@ -56,7 +72,7 @@ def create_database():
 
     # Create the "speaking" table
     cursor.execute('''
-        CREATE TABLE exercises (
+        CREATE TABLE IF NOT EXISTS exercises (
             id INTEGER PRIMARY KEY,
             book TEXT,
             topic TEXT,
@@ -66,7 +82,7 @@ def create_database():
 
     # create the "rules" table
     cursor.execute('''
-            CREATE TABLE rules (
+            CREATE TABLE IF NOT EXISTS rules (
                 id INTEGER PRIMARY KEY,
                 book TEXT,
                 topic TEXT,
@@ -76,7 +92,7 @@ def create_database():
 
     # create the "lessons" table
     cursor.execute('''
-        CREATE TABLE lessons (
+        CREATE TABLE IF NOT EXISTS lessons (
             id INTEGER PRIMARY KEY,
             book TEXT,
             topic TEXT,
@@ -85,12 +101,12 @@ def create_database():
     ''')
 
     # Insert data into the "information" table
-    cursor.execute("INSERT INTO information (developer, bot, admin) VALUES ('developer name','about the bot',"
-                   "'about the admin')")
+    # cursor.execute("INSERT INTO information (developer, bot, admin) VALUES ('developer name','about the bot',"
+    #                "'about the admin')")
 
     # Insert data into the "information" table
-    cursor.execute("INSERT INTO books (name, about, teacher) VALUES ('book1','about1','about1')")
-    cursor.execute("INSERT INTO books (name, about, teacher) VALUES ('book2','about2','about2')")
+    # cursor.execute("INSERT INTO books (name, about, teacher) VALUES ('book1','about1','about1')")
+    # cursor.execute("INSERT INTO books (name, about, teacher) VALUES ('book2','about2','about2')")
 
     conn.commit()
     conn.close()
@@ -653,7 +669,91 @@ def database_add_words_audio(words):
         # ovozli habarni saqlash
         tts.save("data/audio/writing/"+text+".mp3")
         stts.save("data/audio/spelling/"+text+".mp3")
-# create_database()
+
+
+def database_chek_voice(audio,_id):
+    try:
+        # Create a Recognizer object
+        OGG_FILE = audio
+        #     print(1)
+        #     # ovozli habar faylini .wav formatiga aylantirish
+        data, samplerate = sf.read(OGG_FILE)
+        sf.write('data/voices/'+str(_id)+"1.wav", data, samplerate)
+        #
+        r = sr.Recognizer()
+
+        # Read the audio file
+        with sr.AudioFile('data/voices/'+str(_id)+"1.wav") as source:
+            audio = r.record(source)
+
+        # Transcribe the audio
+        text = r.recognize_google(audio)
+        return text
+    except:
+        return "No speach"
+
+
+def delete_employee(id):
+    conn = sqlite3.connect(DATABASE_NAME)
+    c = conn.cursor()
+
+    c.execute("DELETE FROM employees WHERE id = ?", (id,))
+
+    conn.commit()
+    conn.close()
+
+
+def add_employee(id, name):
+    conn = sqlite3.connect(DATABASE_NAME)
+    c = conn.cursor()
+    try:
+        c.execute("INSERT INTO employees (id, name) VALUES (?,?)", (id, name))
+    except:pass
+    conn.commit()
+    conn.close()
+
+
+def view_employees():
+    conn = sqlite3.connect(DATABASE_NAME)
+    c = conn.cursor()
+
+    c.execute("SELECT * FROM employees")
+    data = c.fetchall()
+    conn.close()
+    return data
+
+
+def delete_employee_state(id):
+    conn = sqlite3.connect(DATABASE_NAME)
+    c = conn.cursor()
+
+    c.execute("DELETE FROM employees_state WHERE id = ?", (id,))
+
+    conn.commit()
+    conn.close()
+
+
+def add_employee_state(id):
+    conn = sqlite3.connect(DATABASE_NAME)
+    c = conn.cursor()
+    try:
+        c.execute("INSERT INTO employees_state (id) VALUES (?)", (id, ))
+    except:pass
+    conn.commit()
+    conn.close()
+
+
+def view_employees_state():
+    conn = sqlite3.connect(DATABASE_NAME)
+    c = conn.cursor()
+
+    c.execute("SELECT id FROM employees_state")
+    data = c.fetchall()
+    conn.close()
+
+    return data
+
+
 # print(database_get_information_())
 # print(database_get_books())
 # print([name[1] for name in database_get_books()])

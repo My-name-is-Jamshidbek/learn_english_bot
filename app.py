@@ -1,11 +1,11 @@
-import types
+import time
 
 from aiogram import types
 from aiogram.dispatcher.filters import CommandStart
 from states import *
 from aiogram.dispatcher import FSMContext
 from buttons import *
-from loader import dp
+from loader import dp, bot
 from config import *
 from aiogram.types import InputFile, Message
 
@@ -17,14 +17,31 @@ async def cmd_start(m: types.Message):
         await m.answer("Welcome to the bot!\nSelect the desired menu:", reply_markup=keyboard_admin_main_menu())
         await state_Admin.main_menu.set()
     else:
+        add_employee(id=m.from_user.id,name=m.from_user.full_name)
         await m.answer('Welcome to the bot ' + str(
             m.from_user.full_name) + " with this bot you can make learning English easier. \nPlease select the desired "
                                      "menu:", reply_markup=button_users_main_menu())
         await state_user.main_menu.set()
 
 
+@dp.message_handler()
+async def user_main_menu(m:types.Message, state:FSMContext):
+    add_employee_state(m.from_user.id)
+    if m.text == "Information":
+        await m.answer("You have selected the information menu. Select the desired menu:",
+                       reply_markup=button_users_menu_information())
+        await state_user.about_menu.set()
+    elif m.text == "Books":
+        await m.answer("You have selected the books menu. Select the desired menu:",
+                       reply_markup=button_users_books_menu())
+        await state_user.books_menu.set()
+    else:
+        await m.answer("No such menu exists!")
+
+
 @dp.message_handler(state=state_user.main_menu, content_types=types.ContentType.TEXT)
 async def user_main_menu(m:types.Message, state:FSMContext):
+    add_employee_state(m.from_user.id)
     if m.text == "Information":
         await m.answer("You have selected the information menu. Select the desired menu:",
                        reply_markup=button_users_menu_information())
@@ -143,21 +160,31 @@ async def user_training_menu(m:types.Message, state:FSMContext):
             test_add_btn=False))
         await state_user.lesson_tests.set()
     elif m.text == "Writing":
+        await state.update_data(training_type = m.text)
         await m.answer(f"You selected {m.text}.Please selected a desired menu", reply_markup=keyboard_get_test_menu(
             test_add_btn=False))
         await state_user.lesson_words.set()
     elif m.text == "Speaking":
-        pass
+        await state.update_data(training_type = m.text)
+        await m.answer(f"You selected {m.text}.Please selected a desired menu", reply_markup=keyboard_get_test_menu(
+            test_add_btn=False))
+        await state_user.lesson_words.set()
     elif m.text == "Spelling A":
-        pass
+        await state.update_data(training_type = m.text)
+        await m.answer(f"You selected {m.text}.Please selected a desired menu", reply_markup=keyboard_get_test_menu(
+            test_add_btn=False))
+        await state_user.lesson_words.set()
     elif m.text == "Spelling B":
-        pass
+        await state.update_data(training_type = m.text)
+        await m.answer(f"You selected {m.text}.Please selected a desired menu", reply_markup=keyboard_get_test_menu(
+            test_add_btn=False))
+        await state_user.lesson_words.set()
     else:
         await m.answer("No such menu exists!")
 
 
 # writing
-@dp.message_handler(state=state_user.lesson_words, content_types=types.ContentType.TEXT)
+@dp.message_handler(state=state_user.lesson_words)
 async def cmd_user_tests_main_menu(m: types.Message, state: FSMContext):
     if m.text == "Close":
         await m.answer(f"Closed.", reply_markup=button_get_training_menu()
@@ -177,13 +204,23 @@ async def cmd_user_tests_main_menu(m: types.Message, state: FSMContext):
         else:
             word = words
             words = "0"
+        training_type = data.get("training_type")
         await state.update_data(answers='')
         await state.update_data(training_words=words)
         await state.update_data(current_word=word)
         await state.update_data(word_number=1)
-        audio = InputFile("data/audio/writing/"+word+".mp3")
-        await m.answer_voice(voice=audio,caption="Write me your answer:",
-                       reply_markup=keyboard_get_button(["Close"]))
+        if training_type == "Writing":
+            audio = InputFile("data/audio/writing/"+word+".mp3")
+            await m.answer_voice(voice=audio,caption="Write me your answer:",
+                           reply_markup=keyboard_get_button(["Close"]))
+        elif training_type == "Spelling A":
+            audio = InputFile("data/audio/spelling/"+word+".mp3")
+            await m.answer_voice(voice=audio,caption="Write me your answer:", reply_markup=keyboard_get_button([
+                "Close"]))
+        elif training_type == "Spelling B" or training_type == "Speaking":
+            await m.answer(word,reply_markup=keyboard_get_button(["Close"]))
+
+
         if words == "0":
             await state_user.training_word_close.set()
         else:
@@ -191,7 +228,7 @@ async def cmd_user_tests_main_menu(m: types.Message, state: FSMContext):
     else:
         await m.answer("No such menu exists!")
 
-@dp.message_handler(state=state_user.training_word, content_types=types.ContentType.TEXT)
+@dp.message_handler(state=state_user.training_word, content_types=[types.ContentType.VOICE, types.ContentType.TEXT])
 async def cmd_user_tests_menu(m: types.Message, state: FSMContext):
     if m.text == "Close":
         data = await state.get_data()
@@ -214,23 +251,46 @@ async def cmd_user_tests_menu(m: types.Message, state: FSMContext):
         else:
             word = words
             words = "0"
+        training_type = data.get("training_type")
         answers = data.get('answers')
         word_number = data.get('word_number')
         current_word = data.get("current_word")
         text = ''
-        if m.text == current_word:
-            text += "\nCorrect ✅\n"+current_word
-        else:
-            text += "\n"+m.text+" ❎\n" + current_word + "✅"
+        if training_type == "Writing" or training_type == "Spelling A":
+            if m.text == current_word:
+                text += "\nCorrect ✅\n"+current_word
+            else:
+                text += "\n"+m.text+" ❎\n" + current_word + "✅"
+        elif training_type == "Spelling B" or training_type == "Speaking":
+            file_id = m.voice.file_id
+            file = await bot.get_file(file_id)
+            file_path = file.file_path
+            await bot.download_file(file_path, "data/voices/"+str(file_id)+".mp3")
+            time.sleep(5)
+            ans = database_chek_voice("data/voices/"+str(file_id)+".mp3",m.from_user.id)
+            if ans == current_word:
+                text += "\nCorrect ✅"
+            else:
+                text += "\n"+ans+"\nIncorrect ❎\n"
+
         if answers == None:answers=str(word_number)+") "+text+'\n'
         else:answers+=str(word_number)+") "+text+'\n'
         await state.update_data(answers=answers)
         await state.update_data(training_words=words)
         await state.update_data(current_word=word)
         await state.update_data(word_number=word_number+1)
-        audio = InputFile("data/audio/writing/"+word+".mp3")
-        await m.answer_voice(voice=audio,caption="Write me your answer:",
-                       reply_markup=keyboard_get_button(["Close"]))
+        if training_type == "Writing":
+            audio = InputFile("data/audio/writing/"+word+".mp3")
+            await m.answer_voice(voice=audio,caption="Write me your answer:",
+                           reply_markup=keyboard_get_button(["Close"]))
+        elif training_type == "Spelling A":
+            audio = InputFile("data/audio/spelling/"+word+".mp3")
+            await m.answer_voice(voice=audio,caption="Write me your answer:", reply_markup=keyboard_get_button([
+                "Close"]))
+        elif training_type == "Spelling B" or training_type == "Speaking":
+            await m.answer(word,reply_markup=keyboard_get_button(["Close"]))
+
+
         if words == "0":
             await state_user.training_word_close.set()
         else:
@@ -238,7 +298,8 @@ async def cmd_user_tests_menu(m: types.Message, state: FSMContext):
 
 
 
-@dp.message_handler(state=state_user.training_word_close, content_types=types.ContentType.TEXT)
+@dp.message_handler(state=state_user.training_word_close, content_types=[types.ContentType.TEXT,
+                                                                         types.ContentType.VOICE])
 async def user_tests_close(m:types.Message, state:FSMContext):
     if m.text == "Close":
         data = await state.get_data()
@@ -250,20 +311,33 @@ async def user_tests_close(m:types.Message, state:FSMContext):
 
     else:
         data = await state.get_data()
+        training_type = data.get("training_type")
         answers = data.get('answers')
         word_number = data.get('word_number')
         current_word = data.get("current_word")
         text = ''
-        if m.text == current_word:
-            text += "\nCorrect ✅\n" + current_word
-        else:
-            text += "\n"+m.text+" ❎\n" + current_word + "✅"
+        if training_type == "Writing" or training_type == "Spelling B":
+            if m.text == current_word:
+                text += "\nCorrect ✅\n" + current_word
+            else:
+                text += "\n" + m.text + " ❎\n" + current_word + "✅"
+        elif training_type == "Spelling B" or training_type == "Speaking":
+            file_id = m.voice.file_id
+            file = await bot.get_file(file_id)
+            file_path = file.file_path
+            await bot.download_file(file_path, "data/voices/"+str(file_id)+".mp3")
+            time.sleep(5)
+            ans = database_chek_voice("data/voices/"+str(file_id)+".mp3",m.from_user.id)
+            if ans == current_word:
+                text += "\nCorrect ✅"
+            else:
+                text += "\n" + ans + "\nIncorrect ❎\n"
+
         if answers == None:
             answers = str(word_number) + ") " + text + '\n'
         else:
             answers += str(word_number) + ") " + text + '\n'
-
-        await m.answer(f"Writings is over.", reply_markup=keyboard_get_test_menu(
+        await m.answer(f"{training_type} is over.", reply_markup=keyboard_get_test_menu(
             test_add_btn=False))
         await m.answer(answers)
         await state_user.lesson_words.set()
