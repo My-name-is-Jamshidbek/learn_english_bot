@@ -106,3 +106,4 @@ class state_user(StatesGroup):
     word_number = State()
     training_word = State()
 
+    training_type = State()
