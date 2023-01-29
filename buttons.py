@@ -6,10 +6,12 @@ def button_users_main_menu():
     # Tugmalar matni
     books_button = KeyboardButton('Books')
     information_button = KeyboardButton('Information')
+    translator_button = KeyboardButton('Translator')
     # Tugmalar matnini ReplyKeyboardMarkup obyektiga qo'shish
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(books_button)
     markup.add(information_button)
+    markup.add(translator_button)
     return markup
 
 

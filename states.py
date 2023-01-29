@@ -87,6 +87,8 @@ class state_Admin(StatesGroup):
 
 
 class state_user(StatesGroup):
+    translater = State()
+
     main_menu = State()
     about_menu = State()
     books_menu = State()

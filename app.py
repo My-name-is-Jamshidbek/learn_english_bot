@@ -8,7 +8,7 @@ from buttons import *
 from loader import dp, bot
 from config import *
 from aiogram.types import InputFile, Message
-
+from translator import translator_text, photo_text
 
 
 @dp.message_handler(CommandStart())
@@ -35,6 +35,10 @@ async def user_main_menu(m:types.Message, state:FSMContext):
         await m.answer("You have selected the books menu. Select the desired menu:",
                        reply_markup=button_users_books_menu())
         await state_user.books_menu.set()
+    elif m.text == "Translator":
+        await m.answer("You have selected the translator menu. Send me text, voice(in english) or photo:",
+                       reply_markup=keyboard_close())
+        await state_user.translater.set()
     else:
         await m.answer("No such menu exists!")
 
@@ -50,8 +54,41 @@ async def user_main_menu(m:types.Message, state:FSMContext):
         await m.answer("You have selected the books menu. Select the desired menu:",
                        reply_markup=button_users_books_menu())
         await state_user.books_menu.set()
+    elif m.text == "Translator":
+        await m.answer("You have selected the translator menu. Send me text, voice(in english) or photo:",
+                       reply_markup=keyboard_close())
+        await state_user.translater.set()
     else:
         await m.answer("No such menu exists!")
+
+
+@dp.message_handler(state = state_user.translater,content_types=[types.ContentType.TEXT, types.ContentType.VOICE,
+                                                                 types.ContentType.PHOTO])
+async def translator(m:types.Message, state:FSMContext):
+    if m.voice:
+        file_id = m.voice.file_id
+        file = await bot.get_file(file_id)
+        file_path = file.file_path
+        await bot.download_file(file_path, "data/voices/"+str(file_id)+".mp3")
+        time.sleep(5)
+        text = database_chek_voice("data/voices/"+str(file_id)+".mp3",m.from_user.id)
+    elif m.text:
+        if m.text == "Close":
+            await m.answer("Closed.", reply_markup=button_users_main_menu())
+            await state_user.main_menu.set()
+        else:
+            text = m.text
+    elif m.photo:
+        file_id = m.photo[0].file_id
+        print(file_id)
+        file = await bot.get_file(file_id)
+        file_path = file.file_path
+        await bot.download_file(file_path, "data/photos/" + str(file_id) + ".jpg")
+        time.sleep(5)
+        text = photo_text("data/photos/" + str(file_id) + ".jpg")
+    print(text)
+    text = translator_text(text)
+    await m.answer(text)
 
 
 @dp.message_handler(state=state_user.about_menu, content_types=types.ContentType.TEXT)
