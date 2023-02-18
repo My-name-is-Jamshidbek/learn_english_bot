@@ -661,14 +661,19 @@ def database_add_words_audio(words):
     :return:
     """
     for text in words.split(','):
-        stext = ''
-        for i in text:stext+=i+" "
-        # ovozli habar yaratish
-        tts = gTTS(text)
-        stts = gTTS(stext)
-        # ovozli habarni saqlash
-        tts.save("data/audio/writing/"+text+".mp3")
-        stts.save("data/audio/spelling/"+text+".mp3")
+        try:
+            stext = ''
+            for i in text:stext+=i+" "
+            # ovozli habar yaratish
+            tts = gTTS(text)
+            stts = gTTS(stext)
+            # ovozli habarni saqlash
+            tts.save("data/audio/writing/"+text+".mp3")
+            stts.save("data/audio/spelling/"+text+".mp3")
+        except Exception as e:
+            print(e)
+        else:
+            pass
 
 
 def database_chek_voice(audio,_id):

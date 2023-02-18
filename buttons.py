@@ -6,10 +6,12 @@ def button_users_main_menu():
     # Tugmalar matni
     books_button = KeyboardButton('Books')
     information_button = KeyboardButton('Information')
+    translator_button = KeyboardButton('Translator')
     # Tugmalar matnini ReplyKeyboardMarkup obyektiga qo'shish
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(books_button)
     markup.add(information_button)
+    markup.add(translator_button)
     return markup
 
 
@@ -55,13 +57,12 @@ def button_get_lessons_menu(book):
     data = database_get_topics(book)
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     try:
-        for i in data[0]:
-            markup.add(KeyboardButton(i))
+        for i in data:
+            markup.add(KeyboardButton(i[0]))
     except:
         pass
     markup.add("Close")
     return markup
-
 
 def button_get_training_menu():
     data = ["Tests","Writing","Speaking","Spelling A","Spelling B","Close"]

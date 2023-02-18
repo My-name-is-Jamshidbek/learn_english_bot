@@ -8,7 +8,7 @@ from buttons import *
 from loader import dp, bot
 from config import *
 from aiogram.types import InputFile, Message
-
+from translator import translator_text, photo_text
 
 
 @dp.message_handler(CommandStart())
@@ -27,7 +27,10 @@ async def cmd_start(m: types.Message):
 @dp.message_handler()
 async def user_main_menu(m:types.Message, state:FSMContext):
     add_employee_state(m.from_user.id)
-    if m.text == "Information":
+    if m.from_user.id in ADMIN_IDS:
+        await m.answer("Welcome to the bot!\nSelect the desired menu:", reply_markup=keyboard_admin_main_menu())
+        await state_Admin.main_menu.set()
+    elif m.text == "Information":
         await m.answer("You have selected the information menu. Select the desired menu:",
                        reply_markup=button_users_menu_information())
         await state_user.about_menu.set()
@@ -35,6 +38,10 @@ async def user_main_menu(m:types.Message, state:FSMContext):
         await m.answer("You have selected the books menu. Select the desired menu:",
                        reply_markup=button_users_books_menu())
         await state_user.books_menu.set()
+    elif m.text == "Translator":
+        await m.answer("You have selected the translator menu. Send me text, voice(in english) or photo:",
+                       reply_markup=keyboard_close())
+        await state_user.translater.set()
     else:
         await m.answer("No such menu exists!")
 
@@ -50,8 +57,39 @@ async def user_main_menu(m:types.Message, state:FSMContext):
         await m.answer("You have selected the books menu. Select the desired menu:",
                        reply_markup=button_users_books_menu())
         await state_user.books_menu.set()
+    elif m.text == "Translator":
+        await m.answer("You have selected the translator menu. Send me text, voice(in english) or photo:",
+                       reply_markup=keyboard_close())
+        await state_user.translater.set()
     else:
         await m.answer("No such menu exists!")
+
+
+@dp.message_handler(state = state_user.translater,content_types=[types.ContentType.TEXT, types.ContentType.VOICE,
+                                                                 types.ContentType.PHOTO])
+async def translator(m:types.Message, state:FSMContext):
+    if m.voice:
+        file_id = m.voice.file_id
+        file = await bot.get_file(file_id)
+        file_path = file.file_path
+        await bot.download_file(file_path, "data/voices/"+str(file_id)+".mp3")
+        time.sleep(5)
+        text = database_chek_voice("data/voices/"+str(file_id)+".mp3",m.from_user.id)
+    elif m.text:
+        if m.text == "Close":
+            await m.answer("Closed.", reply_markup=button_users_main_menu())
+            await state_user.main_menu.set()
+        else:
+            text = m.text
+    elif m.photo:
+        file_id = m.photo[0].file_id
+        file = await bot.get_file(file_id)
+        file_path = file.file_path
+        await bot.download_file(file_path, "data/photos/" + str(file_id) + ".jpg")
+        time.sleep(5)
+        text = photo_text("data/photos/" + str(file_id) + ".jpg")
+    text = translator_text(text)
+    await m.answer(text)
 
 
 @dp.message_handler(state=state_user.about_menu, content_types=types.ContentType.TEXT)
@@ -114,19 +152,24 @@ async def user_lessons_menu(m:types.Message, state:FSMContext):
         await m.answer("Closed.",
                        reply_markup=button_users_books_menu())
         await state_user.books_menu.set()
-    elif m.text in database_get_topics(book_name)[0]:
-        await state.update_data(lesson=m.text)
-        if lt == "Training":
-            await m.answer(f"You selected {m.text}.Please selected a desired menu:", reply_markup=button_get_training_menu()
-                           )
-            await state_user.training_menu.set()
-        elif lt == "Lessons":
-            await m.answer(f"You selected {m.text}.Please selected a desired menu:",
-                           reply_markup=button_get_lesson_menu()
-                           )
-            await state_user.lesson_menu.set()
     else:
-        await m.answer("No such menu exists!")
+        n = False
+        for i in database_get_topics(book_name):
+            if m.text == i[0]:
+                n = True
+        if n:
+            await state.update_data(lesson=m.text)
+            if lt == "Training":
+                await m.answer(f"You selected {m.text}.Please selected a desired menu:", reply_markup=button_get_training_menu()
+                               )
+                await state_user.training_menu.set()
+            elif lt == "Lessons":
+                await m.answer(f"You selected {m.text}.Please selected a desired menu:",
+                               reply_markup=button_get_lesson_menu()
+                               )
+                await state_user.lesson_menu.set()
+        else:
+            await m.answer("No such menu exists!")
 
 
 @dp.message_handler(state=state_user.lesson_menu, content_types=types.ContentType.TEXT)
@@ -138,7 +181,7 @@ async def user_lesson_menu(m:types.Message, state:FSMContext):
         await m.answer("Closed", reply_markup=button_get_lessons_menu(book_name))
         await state_user.lessons_menu.set()
     elif m.text == "Vocabulary":
-        await m.answer(text = str(database_get_words_by_topic(book_name, topic)[0][0]))
+        await m.answer(text = str(database_get_words_by_topic(book_name, topic)))
     elif m.text == "Exercise":
         await m.answer(text = str(database_get_exercise_by_topic(book_name, topic)[0][0]))
     elif m.text == "Rules":
